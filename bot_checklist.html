@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CineMatrix Checklist</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 2rem; color: #222; }
+    h1 { font-size: 1.6rem; color: #1F4E79; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 0.9rem; color: #888; margin-bottom: 2rem; }
+    .section { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1.25rem; overflow: hidden; }
+    .section-header { background: #1F4E79; color: #fff; padding: 0.6rem 1rem; font-size: 0.95rem; font-weight: bold; }
+    .item { display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 1rem; border-bottom: 1px solid #f0f0f0; cursor: pointer; user-select: none; }
+    .item:last-child { border-bottom: none; }
+    .item:hover { background: #f9f9f9; }
+    .item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #1F4E79; flex-shrink: 0; }
+    .item label { font-size: 0.9rem; cursor: pointer; flex: 1; }
+    .item.done label { text-decoration: line-through; color: #aaa; }
+    .progress-bar-wrap { background: #e0e0e0; border-radius: 99px; height: 8px; margin-bottom: 0.4rem; overflow: hidden; }
+    .progress-bar { background: #1F4E79; height: 100%; border-radius: 99px; transition: width 0.3s; }
+    .progress-label { font-size: 0.8rem; color: #666; margin-bottom: 2rem; }
+  </style>
+</head>
+<body>
+
+  <h1>CineMatrix</h1>
+  <p class="subtitle">Backseat Team — CSCI 2910 Project Checklist</p>
+
+  <div class="progress-bar-wrap"><div class="progress-bar" id="bar"></div></div>
+  <p class="progress-label" id="progress-label">0 of 0 tasks complete</p>
+
+  <div class="section">
+    <div class="section-header">Setup</div>
+    <div class="item" ><input type="checkbox"><label>Create project folder structure (api/, bot/)</label></div>
+    <div class="item" ><input type="checkbox"><label>Fill in api/requirements.txt</label></div>
+    <div class="item" ><input type="checkbox"><label>Fill in bot/requirements.txt</label></div>
+    <div class="item" ><input type="checkbox"><label>Create .env.example with TOKEN, GUILD_ID, API_BASE</label></div>
+    <div class="item" ><input type="checkbox"><label>Add .gitignore (.env, *.db, __pycache__)</label></div>
+    <div class="item" ><input type="checkbox"><label>Register Discord bot on developer portal</label></div>
+    <div class="item" ><input type="checkbox"><label>Configure OAuth2 permissions (bot + applications.commands)</label></div>
+    <div class="item" ><input type="checkbox"><label>Invite bot to test server</label></div>
+    <div class="item" ><input type="checkbox"><label>Create #movie-queue channel in test server</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Database (database.py)</div>
+    <div class="item" ><input type="checkbox" checked><label>Implement get_conn() with row_factory + foreign keys</label></div>
+    <div class="item" ><input type="checkbox" checked><label>Implement init_db() — create movies, votes, ratings tables</label></div>
+    <div class="item" ><input type="checkbox"><label>Verify tables create cleanly on fresh run</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">API — Movies (main.py)</div>
+    <div class="item" ><input type="checkbox" checked><label>GET /movies — list all movies</label></div>
+    <div class="item" ><input type="checkbox" checked><label>POST /movies — add movie, reject duplicates (409)</label></div>
+    <div class="item" ><input type="checkbox" checked><label>PATCH /movies/{id}/watched — mark watched with date</label></div>
+    <div class="item" ><input type="checkbox" checked><label>DELETE /movies/{id} — remove a movie</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">API — Votes & Ratings (main.py)</div>
+    <div class="item" ><input type="checkbox"><label>POST /movies/{id}/votes — vote, reject duplicate votes</label></div>
+    <div class="item" ><input type="checkbox"><label>POST /movies/{id}/ratings — rate 1-5, reject if not watched</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">API — Special Queries (main.py)</div>
+    <div class="item" ><input type="checkbox"><label>GET /whats-next — top-voted unwatched movie</label></div>
+    <div class="item" ><input type="checkbox"><label>GET /top-rated — watched movies ranked by avg rating</label></div>
+    <div class="item" ><input type="checkbox"><label>GET /history — all watched movies with avg scores</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Bot Commands (bot.py)</div>
+    <div class="item" ><input type="checkbox"><label>/suggest — POST /movies + announce to #movie-queue</label></div>
+    <div class="item" ><input type="checkbox"><label>/vote — POST /movies/{id}/votes</label></div>
+    <div class="item" ><input type="checkbox"><label>/whats-next — GET /whats-next</label></div>
+    <div class="item" ><input type="checkbox"><label>/watched — PATCH /movies/{id}/watched</label></div>
+    <div class="item" ><input type="checkbox"><label>/rate — POST /movies/{id}/ratings</label></div>
+    <div class="item" ><input type="checkbox"><label>/top-rated — GET /top-rated</label></div>
+    <div class="item" ><input type="checkbox"><label>/history — GET /history</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Testing</div>
+    <div class="item" ><input type="checkbox"><label>Test all API routes via /docs UI</label></div>
+    <div class="item" ><input type="checkbox"><label>Full end-to-end: suggest → vote → whats-next → watched → rate → top-rated</label></div>
+    <div class="item" ><input type="checkbox"><label>Verify duplicate vote rejected</label></div>
+    <div class="item" ><input type="checkbox"><label>Verify rating rejected if movie not watched</label></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Deliverables</div>
+    <div class="item" ><input type="checkbox" checked><label>Deliverable 1 — Community proposal (due 4/5) submitted</label></div>
+    <div class="item" ><input type="checkbox"><label>Deliverable 2 — Progress report (due 4/12 @ 11:59pm) submitted</label></div>
+    <div class="item" ><input type="checkbox"><label>Deliverable 3 — Final project (due 4/26 @ 11:59pm) submitted</label></div>
+    <div class="item" ><input type="checkbox"><label>Peer evaluation submitted</label></div>
+  </div>
+
+  <script>
+    function updateProgress() {
+      const all = document.querySelectorAll('.item input[type="checkbox"]');
+      const done = [...all].filter(cb => cb.checked).length;
+      const pct = Math.round((done / all.length) * 100);
+      document.getElementById('bar').style.width = pct + '%';
+      document.getElementById('progress-label').textContent = `${done} of ${all.length} tasks complete`;
+    }
+
+    document.querySelectorAll('.item input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        cb.closest('.item').classList.toggle('done', cb.checked);
+        updateProgress();
+      });
+      if (cb.checked) cb.closest('.item').classList.add('done');
+    });
+
+    updateProgress();
+  </script>
+
+</body>
+</html>

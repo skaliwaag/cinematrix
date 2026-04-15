@@ -1,0 +1,8 @@
+Cinematrix CommandList
+/suggest [title]: Adds a movie to the watchlist. Any member can submit one at any time. Simple insert into the movies table.
+/vote [title]:	Upvotes a movie on the list. Checks that the user hasn’t already voted for that title before writing to the votes table.
+/whats-next: Returns the unwatched movie with the most votes. Single read query with ORDER BY — fast and useful before every movie night.
+/watched [title]: Marks a movie as watched and logs the date, resets the movie's vote count to 0.
+/poll top: Returns the top 5 highest-voted movies and runs a discord poll to select one.
+/poll random: Returns 5 random movies and runs a discord poll to select one
+/history: Lists all watched movies with dates and average scores. Straightforward read from watch_log joined with ratings.

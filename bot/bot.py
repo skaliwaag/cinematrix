@@ -77,12 +77,12 @@ async def history(interaction: discord.Interaction):
     # TODO: GET /history, format and display results
     pass
 
-@tree.command(guild=guild, name="poll top", description="Run a poll of the top 5 highest-voted movies"
+@tree.command(guild=guild, name="poll top", description="Run a poll of the top 5 highest-voted movies")
 async def poll_top(interaction: discord.Interaction):
     # Implement polling and database retrieval
 
 
-@tree.command(guild=guild, name="poll random", description="Run a poll 5 random movies"
+@tree.command(guild=guild, name="poll random", description="Run a poll 5 random movies")
 async def poll_top(interaction: discord.Interaction):
     # Implement polling and database retrieval
 

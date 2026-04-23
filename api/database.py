@@ -19,7 +19,13 @@ def init_db():
             title        TEXT NOT NULL UNIQUE,
             suggested_by TEXT NOT NULL,
             watched      INTEGER NOT NULL DEFAULT 0,
-            watched_at   TEXT
+            watched_at   TEXT,
+            year         TEXT,
+            genre        TEXT,
+            plot         TEXT,
+            poster_url   TEXT,
+            imdb_id      TEXT,
+            imdb_rating  TEXT
         );
 
         CREATE TABLE IF NOT EXISTS votes (
@@ -37,6 +43,16 @@ def init_db():
             UNIQUE(movie_id, user_id)
         );
     """)
+
+    # Migrate existing DB — silently skip columns that already exist
+    new_columns = ["year TEXT", "genre TEXT", "plot TEXT",
+                   "poster_url TEXT", "imdb_id TEXT", "imdb_rating TEXT"]
+    for col in new_columns:
+        try:
+            conn.execute(f"ALTER TABLE movies ADD COLUMN {col}")
+        except Exception:
+            pass
+
     conn.commit()
     conn.close()
     print("Database ready.")

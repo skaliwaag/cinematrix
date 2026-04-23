@@ -43,11 +43,19 @@ async def suggest(interaction: discord.Interaction, title: str):
     if r.status_code == 409:
         await interaction.followup.send(f"**{title}** is already on the watchlist.")
         return
-    await interaction.followup.send(f"Added **{title}** to the watchlist!")
+    movie = r.json()
+    year = f" ({movie['year']})" if movie.get("year") else ""
+    rating = f" — ⭐ {movie['imdb_rating']}" if movie.get("imdb_rating") else ""
+    genre = f"\n{movie['genre']}" if movie.get("genre") else ""
+    poster = movie.get("poster_url")
+    msg = f"Added **{movie['title']}**{year}{rating} to the watchlist!{genre}"
+    if poster:
+        msg += f"\n{poster}"
+    await interaction.followup.send(msg)
     channel = discord.utils.get(interaction.guild.text_channels, name=QUEUE_CHANNEL)
     if channel and channel.id != interaction.channel_id:
         await channel.send(
-            f"**{interaction.user.display_name}** suggested **{title}** for movie night!"
+            f"**{interaction.user.display_name}** suggested **{movie['title']}**{year}{rating} for movie night!{genre}"
         )
 
 
@@ -145,6 +153,87 @@ async def top_rated(interaction: discord.Interaction):
         avg_str = f"{avg}/5" if avg is not None else "no ratings"
         count = m.get("rating_count", 0)
         lines.append(f"{i}. **{m['title']}** — {avg_str} ({count} rating(s))")
+    await interaction.followup.send("\n".join(lines))
+
+
+@tree.command(guild=guild, name="remove", description="Remove a movie you suggested from the watchlist")
+@app_commands.describe(title="The movie title to remove")
+async def remove(interaction: discord.Interaction, title: str):
+    await interaction.response.defer()
+    movie_id = await find_movie_id(title)
+    if movie_id is None:
+        await interaction.followup.send(f"**{title}** was not found on the watchlist.")
+        return
+    async with httpx.AsyncClient() as http:
+        r = await http.get(f"{API_BASE}/movies/{movie_id}")
+    movie = r.json()
+    if movie["suggested_by"] != str(interaction.user):
+        await interaction.followup.send(
+            f"You can't remove **{title}** — it was suggested by {movie['suggested_by']}."
+        )
+        return
+    async with httpx.AsyncClient() as http:
+        await http.delete(f"{API_BASE}/movies/{movie_id}")
+    await interaction.followup.send(f"Removed **{title}** from the watchlist.")
+
+
+@tree.command(guild=guild, name="info", description="Show detailed info about a movie on the watchlist")
+@app_commands.describe(title="The movie title to look up")
+async def info(interaction: discord.Interaction, title: str):
+    await interaction.response.defer()
+    movie_id = await find_movie_id(title)
+    if movie_id is None:
+        await interaction.followup.send(f"**{title}** was not found on the watchlist.")
+        return
+    async with httpx.AsyncClient() as http:
+        r = await http.get(f"{API_BASE}/movies/{movie_id}")
+    m = r.json()
+
+    year_str = f" ({m['year']})" if m.get("year") else ""
+    embed = discord.Embed(
+        title=f"{m['title']}{year_str}",
+        color=discord.Color.gold(),
+    )
+    if m.get("plot"):
+        embed.description = m["plot"]
+    if m.get("poster_url"):
+        embed.set_thumbnail(url=m["poster_url"])
+    if m.get("genre"):
+        embed.add_field(name="Genre", value=m["genre"], inline=True)
+    if m.get("imdb_rating"):
+        embed.add_field(name="IMDB Rating", value=f"⭐ {m['imdb_rating']}", inline=True)
+    embed.add_field(name="Suggested by", value=m["suggested_by"], inline=True)
+    embed.add_field(name="Votes", value=str(m.get("vote_count", 0)), inline=True)
+    status = "Watched" if m["watched"] else "Unwatched"
+    if m.get("watched_at"):
+        status += f" ({m['watched_at']})"
+    embed.add_field(name="Status", value=status, inline=True)
+    if m.get("imdb_id"):
+        embed.add_field(
+            name="IMDB", value=f"[View on IMDB](https://www.imdb.com/title/{m['imdb_id']}/)", inline=True
+        )
+
+    await interaction.followup.send(embed=embed)
+
+
+@tree.command(guild=guild, name="queue", description="Show the current unwatched movie watchlist")
+async def queue(interaction: discord.Interaction):
+    await interaction.response.defer()
+    async with httpx.AsyncClient() as http:
+        r = await http.get(f"{API_BASE}/queue")
+    movies = r.json()
+    if not movies:
+        await interaction.followup.send(
+            "The watchlist is empty. Use `/suggest` to add some movies!"
+        )
+        return
+    lines = ["**Watchlist:**"]
+    for i, m in enumerate(movies, 1):
+        year = f" ({m['year']})" if m.get("year") else ""
+        rating = f" — ⭐ {m['imdb_rating']}" if m.get("imdb_rating") else ""
+        votes = m.get("vote_count", 0)
+        vote_str = f" — {votes} vote(s)" if votes else ""
+        lines.append(f"{i}. **{m['title']}**{year}{rating}{vote_str}")
     await interaction.followup.send("\n".join(lines))
 
 

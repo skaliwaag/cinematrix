@@ -3,3 +3,4 @@ api/.env
 .claude
 __pycache__/
 *.pyc
+*.db

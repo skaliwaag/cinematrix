@@ -1,4 +1,5 @@
 import os
+import datetime
 import discord
 from discord import app_commands
 import httpx
@@ -154,6 +155,40 @@ async def top_rated(interaction: discord.Interaction):
         count = m.get("rating_count", 0)
         lines.append(f"{i}. **{m['title']}** — {avg_str} ({count} rating(s))")
     await interaction.followup.send("\n".join(lines))
+
+
+@tree.command(guild=guild, name="poll-top", description="Run a Discord poll on the 5 most-voted unwatched movies")
+async def poll_top(interaction: discord.Interaction):
+    await interaction.response.defer()
+    async with httpx.AsyncClient() as http:
+        r = await http.get(f"{API_BASE}/poll/top")
+    if r.status_code == 404:
+        await interaction.followup.send(
+            "Not enough movies on the watchlist yet. Use `/suggest` to add some!"
+        )
+        return
+    movies = r.json()
+    poll = discord.Poll(question="Which movie should we watch next?", duration=datetime.timedelta(hours=24))
+    for m in movies:
+        poll.add_answer(text=m["title"])
+    await interaction.followup.send(poll=poll)
+
+
+@tree.command(guild=guild, name="poll-random", description="Run a Discord poll on 5 random unwatched movies")
+async def poll_random(interaction: discord.Interaction):
+    await interaction.response.defer()
+    async with httpx.AsyncClient() as http:
+        r = await http.get(f"{API_BASE}/poll/random")
+    if r.status_code == 404:
+        await interaction.followup.send(
+            "Not enough movies on the watchlist yet. Use `/suggest` to add some!"
+        )
+        return
+    movies = r.json()
+    poll = discord.Poll(question="Which movie should we watch next? (random picks)", duration=datetime.timedelta(hours=24))
+    for m in movies:
+        poll.add_answer(text=m["title"])
+    await interaction.followup.send(poll=poll)
 
 
 @tree.command(guild=guild, name="remove", description="Remove a movie you suggested from the watchlist")

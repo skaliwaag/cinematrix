@@ -9,7 +9,7 @@ async def fetch_movie_meta(title: str) -> dict | None:
     if not api_key:
         return None
 
-    async with httpx.AsyncClient(timeout=5) as client:
+    async with httpx.AsyncClient(timeout=5) as client:  # 5s timeout so a slow OMDB response doesn't stall the API
         resp = await client.get(OMDB_URL, params={"t": title, "apikey": api_key})
 
     if resp.status_code != 200:
@@ -19,6 +19,7 @@ async def fetch_movie_meta(title: str) -> dict | None:
     if data.get("Response") == "False":
         return None
 
+    # OMDB returns the string "N/A" for missing fields instead of null, so we normalize those to None
     return {
         "year":        data.get("Year"),
         "genre":       data.get("Genre"),

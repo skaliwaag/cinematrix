@@ -1,10 +1,11 @@
+from datetime import date
 from dotenv import load_dotenv
-load_dotenv()
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from database import get_conn, init_db
 from omdb import fetch_movie_meta
+
+load_dotenv()
 
 app = FastAPI(title="CineMatrix API")
 
@@ -40,6 +41,7 @@ def list_movies():
 
 @app.post("/movies", status_code=201)
 async def add_movie(data: MovieIn):
+    # async because fetch_movie_meta makes an outbound HTTP call to OMDB
     meta = await fetch_movie_meta(data.title) or {}
     conn = get_conn()
     try:
@@ -56,6 +58,7 @@ async def add_movie(data: MovieIn):
         conn.commit()
         row = conn.execute("SELECT * FROM movies WHERE id = ?", (cur.lastrowid,)).fetchone()
     except Exception:
+        # title has a UNIQUE constraint; any IntegrityError here means a duplicate
         conn.close()
         raise HTTPException(status_code=409, detail="Movie already on the list")
     conn.close()
@@ -80,7 +83,6 @@ def get_movie(movie_id: int):
 
 @app.patch("/movies/{movie_id}/watched")
 def mark_watched(movie_id: int):
-    from datetime import date
     conn = get_conn()
     row = conn.execute("SELECT * FROM movies WHERE id = ?", (movie_id,)).fetchone()
     if not row:
@@ -125,6 +127,7 @@ def vote(movie_id: int, data: VoteIn):
         )
         conn.commit()
     except Exception:
+        # UNIQUE(movie_id, user_id) constraint prevents duplicate votes
         conn.close()
         raise HTTPException(status_code=409, detail="Already voted for this movie")
     count = conn.execute(
@@ -155,6 +158,7 @@ def rate_movie(movie_id: int, data: RatingIn):
         )
         conn.commit()
     except Exception:
+        # UNIQUE(movie_id, user_id) constraint prevents rating the same movie twice
         conn.close()
         raise HTTPException(status_code=409, detail="Already rated this movie")
     conn.close()
@@ -172,7 +176,7 @@ def whats_next():
         LEFT JOIN votes v ON v.movie_id = m.id
         WHERE m.watched = 0
         GROUP BY m.id
-        ORDER BY vote_count DESC, m.id ASC
+        ORDER BY vote_count DESC, m.id ASC  -- id ASC breaks ties: oldest suggestion wins
         LIMIT 1
     """).fetchone()
     conn.close()
@@ -189,7 +193,7 @@ def top_rated():
                ROUND(AVG(r.score), 1) as avg_score,
                COUNT(r.id) as rating_count
         FROM movies m
-        JOIN ratings r ON r.movie_id = m.id
+        JOIN ratings r ON r.movie_id = m.id  -- inner JOIN: excludes watched movies with no ratings
         WHERE m.watched = 1
         GROUP BY m.id
         ORDER BY avg_score DESC, rating_count DESC
@@ -206,7 +210,7 @@ def history():
                ROUND(AVG(r.score), 1) as avg_score,
                COUNT(r.id) as rating_count
         FROM movies m
-        LEFT JOIN ratings r ON r.movie_id = m.id
+        LEFT JOIN ratings r ON r.movie_id = m.id  -- LEFT JOIN: includes watched movies even if nobody rated them
         WHERE m.watched = 1
         GROUP BY m.id
         ORDER BY m.watched_at DESC
@@ -227,7 +231,7 @@ def queue():
         LEFT JOIN votes v ON v.movie_id = m.id
         WHERE m.watched = 0
         GROUP BY m.id
-        ORDER BY vote_count DESC, m.id ASC
+        ORDER BY vote_count DESC, m.id ASC  -- id ASC breaks ties: oldest suggestion wins
     """).fetchall()
     conn.close()
     return [dict(r) for r in rows]

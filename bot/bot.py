@@ -21,6 +21,7 @@ guild = discord.Object(id=GUILD_ID)
 # ── Helper ─────────────────────────────────────────────────────────────────────
 
 async def find_movie_id(title: str):
+    # no search endpoint on the API, so we fetch the full list and match locally
     async with httpx.AsyncClient() as http:
         r = await http.get(f"{API_BASE}/movies")
     title_lower = title.lower()
@@ -35,10 +36,12 @@ async def find_movie_id(title: str):
 @tree.command(guild=guild, name="suggest", description="Add a movie to the watchlist")
 @app_commands.describe(title="The movie title to suggest")
 async def suggest(interaction: discord.Interaction, title: str):
+    # defer because the OMDB fetch can exceed Discord's 3-second interaction timeout
     await interaction.response.defer()
     async with httpx.AsyncClient() as http:
         r = await http.post(
             f"{API_BASE}/movies",
+            # suggested_by stores the display name (e.g. "username#1234") so it reads naturally in /remove and /info
             json={"title": title, "suggested_by": str(interaction.user)}
         )
     if r.status_code == 409:
@@ -54,7 +57,7 @@ async def suggest(interaction: discord.Interaction, title: str):
         msg += f"\n{poster}"
     await interaction.followup.send(msg)
     channel = discord.utils.get(interaction.guild.text_channels, name=QUEUE_CHANNEL)
-    if channel and channel.id != interaction.channel_id:
+    if channel and channel.id != interaction.channel_id:  # skip if /suggest was typed in #movie-queue itself
         await channel.send(
             f"**{interaction.user.display_name}** suggested **{movie['title']}**{year}{rating} for movie night!{genre}"
         )
@@ -149,7 +152,7 @@ async def top_rated(interaction: discord.Interaction):
         await interaction.followup.send("No rated movies yet.")
         return
     lines = ["**Top Rated Movies:**"]
-    for i, m in enumerate(movies[:10], 1):
+    for i, m in enumerate(movies[:10], 1):  # cap at 10 to stay under Discord's 2000-character message limit
         avg = m.get("avg_score")
         avg_str = f"{avg}/5" if avg is not None else "no ratings"
         count = m.get("rating_count", 0)
@@ -201,13 +204,12 @@ async def remove(interaction: discord.Interaction, title: str):
         return
     async with httpx.AsyncClient() as http:
         r = await http.get(f"{API_BASE}/movies/{movie_id}")
-    movie = r.json()
-    if movie["suggested_by"] != str(interaction.user):
-        await interaction.followup.send(
-            f"You can't remove **{title}** — it was suggested by {movie['suggested_by']}."
-        )
-        return
-    async with httpx.AsyncClient() as http:
+        movie = r.json()
+        if movie["suggested_by"] != str(interaction.user):
+            await interaction.followup.send(
+                f"You can't remove **{title}** — it was suggested by {movie['suggested_by']}."
+            )
+            return
         await http.delete(f"{API_BASE}/movies/{movie_id}")
     await interaction.followup.send(f"Removed **{title}** from the watchlist.")
 
@@ -294,7 +296,7 @@ async def history(interaction: discord.Interaction):
 
 @client.event
 async def on_ready():
-    await tree.sync(guild=guild)
+    await tree.sync(guild=guild)  # guild-scoped sync is instant; global sync takes up to an hour
     print(f"Logged in as {client.user} — commands synced")
 
 

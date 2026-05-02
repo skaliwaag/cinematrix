@@ -6,8 +6,8 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "cinematrix.db")
 
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row  # lets callers access columns by name instead of index
+    conn.execute("PRAGMA foreign_keys = ON")  # SQLite ignores FK constraints unless this is set per-connection
     return conn
 
 

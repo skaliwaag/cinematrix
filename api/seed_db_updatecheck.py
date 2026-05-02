@@ -13,7 +13,7 @@ MOVIES = [
     ("Hereditary",         "Braeden#5678", 0, None,         "2018", "Drama, Horror, Mystery",  "7.3"),
     ("The Green Mile",     "Hope#9012",    0, None,         "1999", "Crime, Drama, Fantasy",   "8.6"),
     ("Mandy",              "Daniel#1234",  0, None,         "2018", "Action, Fantasy, Horror", "6.5"),
-)
+]
 
 VOTES = [
     # (movie_title, user_id)
